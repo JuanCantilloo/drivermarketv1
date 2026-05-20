@@ -9,10 +9,12 @@ import uuid
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from helpers.storage_paths import get_upload_dir
 import requests
 
 from helpers.image_utils import apply_watermark
 from helpers.vendedor_utils import get_market_average, toggle_featured
+from helpers.github_models import call_github_chat
 
 vendedor_bp = Blueprint('vendedor', __name__, url_prefix='/vendedor')
 ALLOWED_IMAGE_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -250,7 +252,7 @@ def generar_descripcion_ia():
     RESPONDE SOLO CON EL TEXTO DE LA DESCRIPCIÓN EN ESPAÑOL.
     """
 
-    url = "https://models.inference.ai.azure.com/chat/completions"
+    url = None
     headers = {
         "Authorization": f"Bearer {github_token}",
         "Content-Type": "application/json"
@@ -266,7 +268,9 @@ def generar_descripcion_ia():
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        response, config_error = call_github_chat(payload["messages"], temperature=0.7, max_tokens=800, timeout=20)
+        if config_error:
+            return jsonify({'ok': False, 'msg': 'Servicio de IA no configurado (Token faltante).'}), 500
         if response.status_code == 200:
             res_data = response.json()
             descripcion = res_data["choices"][0]["message"]["content"].strip()
@@ -1355,7 +1359,7 @@ def subir_imagen_vehiculo(vid):
             flash("No cuenta con las credenciales necesarias para modificar este registro.", "error")
             return redirect(url_for('vendedor.mis_vehiculos'))
 
-        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'vehiculos')
+        upload_dir = get_upload_dir('uploads', 'vehiculos') or os.path.join(current_app.root_path, 'static', 'uploads', 'vehiculos')
         os.makedirs(upload_dir, exist_ok=True)
 
         filename = secure_filename(file.filename)
@@ -2167,5 +2171,3 @@ def solicitar_destacado(id):
         flash("Error al procesar la carga del comprobante de pago.", "error")
         
     return redirect(url_for('vendedor.mis_vehiculos'))
-
-

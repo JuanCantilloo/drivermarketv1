@@ -1,0 +1,10 @@
+.venv
+.git_old
+docs
+site
+__pycache__
+*.pyc
+*.log
+flask_app*.log
+.env
+.vscode

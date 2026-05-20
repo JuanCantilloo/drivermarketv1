@@ -12,11 +12,13 @@ from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail, Message
 import psycopg2
 import psycopg2.extras
+from sqlalchemy.pool import NullPool
 import random
 import string
 import requests
 import json
 from dotenv import load_dotenv
+from db_settings import get_database_url, get_psycopg2_params
 
 # Es importante ponerlas aquí para poder iniciar la DB temprano
 from models import db, Usuario, PerfilVendedor
@@ -24,8 +26,10 @@ from helpers.notificaciones import obtener_notificaciones_no_leidas, crear_notif
 from helpers.email_templates import generar_html_email
 from helpers.seo_utils import generate_slug
 from helpers.image_utils import apply_watermark
+from helpers.storage_paths import get_upload_dir
+from helpers.github_models import call_github_chat
 
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
 # ----------------------------------------------------
 # INICIALIZACIÓN DE FLASK
@@ -43,16 +47,21 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Límite de subida de arc
 # Requiere: pip install pymysql
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'DATABASE_URL',
-    'postgresql+psycopg2://postgres:samueladso@localhost:5432/todoen1unos'
+    get_database_url()
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Pool configuration to prevent "table definition has changed" errors
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'pool_recycle': 3600,  # Recycle connections every hour
-    'pool_pre_ping': True,  # Test connections before using them
-}
+if os.getenv("VERCEL"):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'poolclass': NullPool,
+        'pool_pre_ping': True,
+    }
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+    }
 
 # ESTO FALTABA: Inicializar la DB con la app
 db.init_app(app)
@@ -372,7 +381,7 @@ def index():
     if conexion:
         # Aseguramos que la conexión no se haya caído
         if conexion.closed:
-            conexion = psycopg2.connect(host="localhost", user="postgres", password="samueladso", dbname="todoen1unos", port=5432)
+            conexion = psycopg2.connect(**get_psycopg2_params())
             conexion.autocommit = False
             
         cursor = conexion.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -457,6 +466,10 @@ def index():
 @app.route('/sobrenosotros')
 def sobrenosotros():
     return render_template('base/sobrenosotros.html')
+
+@app.route('/manual-usuario')
+def manual_usuario():
+    return render_template('base/manual_usuario.html')
 
 @app.route('/acceso_requerido')
 def acceso_requerido():
@@ -611,7 +624,7 @@ def buscar():
     try:
         # Asegurar que la conexión esté activa
         if conexion.closed:
-            conexion = psycopg2.connect(host="localhost", user="postgres", password="samueladso", dbname="todoen1unos", port=5432)
+            conexion = psycopg2.connect(**get_psycopg2_params())
             conexion.autocommit = False
         
         cursor = conexion.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -921,7 +934,7 @@ def vender():
                         
                         # Definir subcarpeta específica para vehículos
                         subfolder = 'uploads/vehiculos'
-                        upload_path = os.path.join(app.root_path, 'static', subfolder)
+                        upload_path = get_upload_dir('uploads', 'vehiculos') or os.path.join(app.root_path, 'static', subfolder)
                         
                         # Asegurar que el directorio existe
                         if not os.path.exists(upload_path):
@@ -1653,7 +1666,7 @@ REGLAS PARA TUS RESPUESTAS:
         if not github_token:
             return jsonify({'respuesta': 'El servicio de IA para esta tienda no está configurado actualmente.'}), 500
 
-        ai_url = "https://models.inference.ai.azure.com/chat/completions"
+        ai_url = None
         headers = {
             "Authorization": f"Bearer {github_token}",
             "Content-Type": "application/json"
@@ -1665,7 +1678,9 @@ REGLAS PARA TUS RESPUESTAS:
             "max_tokens": 500
         }
 
-        response = requests.post(ai_url, headers=headers, json=payload, timeout=20)
+        response, config_error = call_github_chat(messages, temperature=0.7, max_tokens=500, timeout=20)
+        if config_error:
+            return jsonify({'respuesta': 'El servicio de IA para esta tienda no está configurado actualmente.'}), 500
         if response.status_code == 200:
             ai_text = response.json()["choices"][0]["message"]["content"].strip()
             return jsonify({'respuesta': ai_text})
@@ -2390,7 +2405,13 @@ def inject_admin_notifications():
 if __name__ == '__main__':
     # Esto crea las tablas nuevas (perfil_vendedor) automáticamente si no existen
     with app.app_context():
-        db.create_all()
-        print("Tablas de SQLAlchemy verificadas ✔")
+        try:
+            db.create_all()
+            print("Tablas de SQLAlchemy verificadas")
+        except UnicodeDecodeError:
+            print(
+                "[startup] No se pudo conectar a PostgreSQL. "
+                "La causa mas probable es DB_PASSWORD incorrecta para el usuario configurado."
+            )
+            raise SystemExit(1)
     app.run(debug=True , port=3232, host='0.0.0.0')
-

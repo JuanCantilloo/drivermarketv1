@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Manual de Usuario - Drivemarket{% endblock %}
+{% block page_title %}Manual de Usuario{% endblock %}
+
+{% block meta_description %}Manual de usuario oficial de Drivemarket: guía rápida para catálogo, dashboard, publicación de vehículos, comparador, búsqueda avanzada y chatbot IA.{% endblock %}
+
+{% block content %}
+<style>
+  .manual-page{background:#f6f7fb;padding:42px 20px 64px;font-family:'Plus Jakarta Sans',sans-serif;color:#111827;}
+  .manual-shell{max-width:1180px;margin:0 auto;}
+  .manual-hero{background:#fff;border:1px solid #e8ecf2;border-radius:18px;padding:34px;box-shadow:0 18px 50px rgba(15,23,42,.07);display:grid;grid-template-columns:1fr auto;gap:26px;align-items:end;}
+  .manual-kicker{display:inline-flex;align-items:center;gap:8px;color:#ff6a00;background:#fff3ec;border:1px solid #ffd8c2;border-radius:999px;padding:7px 12px;font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px;}
+  .manual-hero h1{font-size:clamp(2rem,4vw,3.2rem);line-height:1.05;margin:0 0 12px;font-weight:900;letter-spacing:0;color:#0f1117;}
+  .manual-hero p{max-width:760px;color:#64748b;font-size:1rem;line-height:1.75;margin:0;}
+  .manual-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
+  .manual-btn{display:inline-flex;align-items:center;gap:9px;border-radius:10px;padding:12px 16px;font-size:.86rem;font-weight:800;text-decoration:none;border:1px solid #e5e7eb;color:#111827;background:#fff;cursor:pointer;}
+  .manual-btn.primary{background:linear-gradient(135deg,#ff6a00,#ff4d1f);color:#fff;border-color:transparent;box-shadow:0 10px 24px rgba(255,106,0,.22);}
+  .manual-layout{display:grid;grid-template-columns:280px 1fr;gap:24px;margin-top:24px;}
+  .manual-toc{position:sticky;top:86px;align-self:start;background:#fff;border:1px solid #e8ecf2;border-radius:14px;padding:18px;box-shadow:0 12px 34px rgba(15,23,42,.05);}
+  .manual-toc h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:#0f1117;margin:0 0 12px;font-weight:900;}
+  .manual-toc a{display:flex;align-items:center;gap:8px;color:#64748b;text-decoration:none;font-size:.86rem;font-weight:700;padding:9px 8px;border-radius:8px;}
+  .manual-toc a:hover{background:#fff7f2;color:#ff6a00;}
+  .manual-content{display:flex;flex-direction:column;gap:18px;}
+  .manual-section{background:#fff;border:1px solid #e8ecf2;border-radius:14px;padding:26px;box-shadow:0 12px 34px rgba(15,23,42,.05);}
+  .manual-section h2{font-size:1.35rem;margin:0 0 18px;color:#0f1117;font-weight:900;display:flex;align-items:center;gap:10px;}
+  .manual-section h2 i{color:#ff6a00;}
+  .quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+  .quick-card,.feature-card,.tip-card,.faq-item{border:1px solid #edf0f5;background:#fcfdff;border-radius:12px;padding:18px;}
+  .step-number{width:34px;height:34px;border-radius:10px;background:#0f1117;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;margin-bottom:12px;}
+  .quick-card h3,.feature-card h3,.tip-card h3{font-size:.98rem;margin:0 0 8px;color:#111827;font-weight:900;}
+  .quick-card p,.feature-card p,.tip-card p,.faq-item p{margin:0;color:#64748b;font-size:.88rem;line-height:1.6;}
+  .feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+  .feature-card h3{display:flex;align-items:center;gap:10px;color:#0f1117;}
+  .feature-card h3 i{color:#ff6a00;}
+  .check-list{display:grid;gap:8px;margin-top:12px;color:#475569;font-size:.88rem;}
+  .check-list span{display:flex;gap:8px;align-items:flex-start;}
+  .check-list i{color:#16a34a;margin-top:3px;}
+  .mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;}
+  .mini-box{background:#fff;border:1px solid #edf0f5;border-radius:10px;padding:14px;}
+  .mini-box strong{display:block;color:#111827;margin-bottom:4px;}
+  .manual-note{background:#fff7f2;border:1px solid #ffd8c2;color:#7c2d12;border-radius:12px;padding:14px 16px;font-size:.88rem;line-height:1.6;margin-top:14px;}
+  .faq-list{display:grid;gap:10px;}
+  .faq-item{display:flex;align-items:center;gap:10px;font-weight:800;color:#334155;}
+  .tip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+  .manual-cta{text-align:center;background:#0f1117;color:#fff;border-radius:16px;padding:30px;margin-top:18px;}
+  .manual-cta h2{margin:0 0 10px;font-size:1.5rem;}
+  .manual-cta p{color:#cbd5e1;margin:0 auto 18px;max-width:720px;line-height:1.7;}
+  @media(max-width:920px){.manual-hero{grid-template-columns:1fr}.manual-actions{justify-content:flex-start}.manual-layout{grid-template-columns:1fr}.manual-toc{position:relative;top:auto}.quick-grid,.feature-grid,.tip-grid{grid-template-columns:1fr}.mini-grid{grid-template-columns:1fr}}
+  @media print{header,footer,.manual-toc,.manual-actions{display:none!important}.manual-page{padding:0;background:#fff}.manual-section,.manual-hero{box-shadow:none;border-color:#ddd;break-inside:avoid}.manual-layout{display:block}}
+</style>
+
+<section class="manual-page">
+  <div class="manual-shell">
+    <div class="manual-hero">
+      <div>
+        <span class="manual-kicker"><i class="fas fa-book-open"></i> Documentación oficial</span>
+        <h1>Manual de Usuario - Drivemarket</h1>
+        <p>Bienvenido al ecosistema automotriz más avanzado. Esta guía está diseñada para que domines cada herramienta de la plataforma impulsada por IA, desde la gestión de inventario hasta el análisis predictivo de ventas.</p>
+      </div>
+      <div class="manual-actions">
+        <a class="manual-btn primary" href="#inicio-rapido"><i class="fas fa-bolt"></i> Ir a guía rápida</a>
+        <button class="manual-btn" type="button" onclick="window.print()"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
+      </div>
+    </div>
+
+    <div class="manual-layout">
+      <aside class="manual-toc">
+        <h3>Contenidos</h3>
+        <a href="#inicio-rapido"><i class="fas fa-chevron-right"></i> Inicio rápido</a>
+        <a href="#secciones"><i class="fas fa-chevron-right"></i> Secciones principales</a>
+        <a href="#catalogo"><i class="fas fa-chevron-right"></i> Catálogo</a>
+        <a href="#dashboard"><i class="fas fa-chevron-right"></i> Dashboard</a>
+        <a href="#detalle"><i class="fas fa-chevron-right"></i> Detalle de vehículo</a>
+        <a href="#comparador"><i class="fas fa-chevron-right"></i> Comparador</a>
+        <a href="#busqueda"><i class="fas fa-chevron-right"></i> Búsqueda avanzada</a>
+        <a href="#chatbot"><i class="fas fa-chevron-right"></i> Chatbot IA</a>
+      </aside>
+
+      <div class="manual-content">
+        <section id="inicio-rapido" class="manual-section">
+          <h2><i class="fas fa-rocket"></i> Inicio rápido</h2>
+          <div class="quick-grid">
+            <div class="quick-card"><div class="step-number">1</div><h3>Accede a tu cuenta</h3><p>Inicia sesión con tus credenciales de Drivemarket para acceder a todas las funcionalidades premium.</p></div>
+            <div class="quick-card"><div class="step-number">2</div><h3>Explora el catálogo</h3><p>Navega por nuestra colección de vehículos premium y usa filtros avanzados para encontrar lo que buscas.</p></div>
+            <div class="quick-card"><div class="step-number">3</div><h3>Compara vehículos</h3><p>Analiza múltiples opciones lado a lado y recibe recomendaciones de IA personalizadas.</p></div>
+            <div class="quick-card"><div class="step-number">4</div><h3>Visualiza detalles</h3><p>Consulta galería, especificaciones, análisis de precio y chatbot IA disponible 24/7.</p></div>
+          </div>
+        </section>
+
+        <section id="secciones" class="manual-section">
+          <h2><i class="fas fa-location-dot"></i> Secciones principales</h2>
+          <p style="color:#64748b;margin:0 0 18px;">Drivemarket está organizado en cinco áreas principales. Conoce cada una de ellas:</p>
+          <div class="feature-grid">
+            <article id="catalogo" class="feature-card">
+              <h3><i class="fas fa-warehouse"></i> Catálogo de vehículos</h3>
+              <p>Tu punto de entrada a Drivemarket.</p>
+              <div class="check-list">
+                <span><i class="fas fa-check-circle"></i> Cuadrícula de vehículos premium verificados</span>
+                <span><i class="fas fa-check-circle"></i> Información de precio, marca y modelo</span>
+                <span><i class="fas fa-check-circle"></i> Badges de verificación IA</span>
+                <span><i class="fas fa-check-circle"></i> Estadísticas de vistas e intereses</span>
+              </div>
+              <div class="manual-note">Usa la barra de búsqueda flotante para filtrar por marca, precio y características.</div>
+            </article>
+
+            <article id="dashboard" class="feature-card">
+              <h3><i class="fas fa-chart-line"></i> Dashboard del vendedor</h3>
+              <p>Panel de control con análisis en tiempo real.</p>
+              <div class="mini-grid">
+                <div class="mini-box"><strong>Métricas</strong><span>Vistas, conversiones, inventario activo y tasa de venta.</span></div>
+                <div class="mini-box"><strong>Gráficos</strong><span>Tendencias y comportamiento de mercado.</span></div>
+                <div class="mini-box"><strong>Estado KYC</strong><span>Verificación de identidad y cumplimiento.</span></div>
+                <div class="mini-box"><strong>Recomendaciones</strong><span>Sugerencias de IA para optimizar ventas.</span></div>
+              </div>
+            </article>
+
+            <article id="detalle" class="feature-card">
+              <h3><i class="fas fa-car-side"></i> Página de detalle del vehículo</h3>
+              <p>Información completa de cada vehículo.</p>
+              <div class="check-list">
+                <span><i class="fas fa-star"></i> Galería de imágenes con zoom interactivo</span>
+                <span><i class="fas fa-gears"></i> Especificaciones técnicas</span>
+                <span><i class="fas fa-robot"></i> Análisis IA y proyección de valor</span>
+                <span><i class="fas fa-comments"></i> Chatbot 24/7</span>
+                <span><i class="fas fa-dollar-sign"></i> Tarjeta de precio y desglose de costos</span>
+              </div>
+              <div class="manual-note">Pregunta al chatbot IA sobre precio, depreciación, estrategias de venta o mercado automotriz.</div>
+            </article>
+
+            <article id="comparador" class="feature-card">
+              <h3><i class="fas fa-code-compare"></i> Herramienta de comparación</h3>
+              <p>Análisis lado a lado con recomendación de IA.</p>
+              <div class="check-list">
+                <span><i class="fas fa-check-circle"></i> Comparación visual lado a lado</span>
+                <span><i class="fas fa-check-circle"></i> Tabla de especificaciones detallada</span>
+                <span><i class="fas fa-check-circle"></i> Puntuación IA personalizada</span>
+                <span><i class="fas fa-check-circle"></i> Análisis de pros y contras</span>
+                <span><i class="fas fa-check-circle"></i> Recomendación destacada de IA</span>
+              </div>
+              <div class="manual-note">La recomendación se basa en mercado, historial de precios y tendencias de depreciación.</div>
+            </article>
+
+            <article id="busqueda" class="feature-card">
+              <h3><i class="fas fa-magnifying-glass"></i> Búsqueda avanzada</h3>
+              <p>Filtros inteligentes para encontrar exactamente lo que buscas.</p>
+              <div class="mini-grid">
+                <div class="mini-box"><strong>Por texto</strong><span>Busca por marca o modelo.</span></div>
+                <div class="mini-box"><strong>Por precio</strong><span>Filtra según tu presupuesto.</span></div>
+                <div class="mini-box"><strong>Por marca</strong><span>Selecciona fabricantes del catálogo.</span></div>
+                <div class="mini-box"><strong>Combinado</strong><span>Usa varios filtros para resultados precisos.</span></div>
+              </div>
+            </article>
+
+            <article id="chatbot" class="feature-card">
+              <h3><i class="fas fa-brain"></i> Asistente IA Drivemarket</h3>
+              <p>Tu experto en mercado automotriz disponible 24/7.</p>
+              <div class="check-list">
+                <span><i class="fas fa-robot"></i> Análisis de precios y mercado</span>
+                <span><i class="fas fa-robot"></i> Recomendaciones personalizadas</span>
+                <span><i class="fas fa-robot"></i> Proyecciones de depreciación</span>
+                <span><i class="fas fa-robot"></i> Estrategias de venta</span>
+              </div>
+              <div class="manual-note">Ejemplos: "¿Cuál es el precio justo?", "¿Qué depreciación esperar?", "¿Cómo optimizar mi anuncio?"</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="manual-section">
+          <h2><i class="fas fa-circle-question"></i> Preguntas frecuentes</h2>
+          <div class="faq-list">
+            <div class="faq-item"><i class="fas fa-chevron-right"></i> ¿Cómo verifico mi identidad (KYC)?</div>
+            <div class="faq-item"><i class="fas fa-chevron-right"></i> ¿Cuánto tiempo tarda en vender un vehículo?</div>
+            <div class="faq-item"><i class="fas fa-chevron-right"></i> ¿Cómo funciona el análisis de IA?</div>
+            <div class="faq-item"><i class="fas fa-chevron-right"></i> ¿Puedo comparar más de dos vehículos?</div>
+            <div class="faq-item"><i class="fas fa-chevron-right"></i> ¿Hay soporte técnico disponible?</div>
+          </div>
+        </section>
+
+        <section class="manual-section">
+          <h2><i class="fas fa-lightbulb"></i> Tips y trucos</h2>
+          <div class="tip-grid">
+            <div class="tip-card"><h3>Maximizar visibilidad</h3><p>Carga 8+ fotos de alta calidad. Los vehículos con galería completa venden 2.3x más rápido.</p></div>
+            <div class="tip-card"><h3>Precio estratégico</h3><p>Usa el análisis IA para fijar un precio competitivo y acelerar contactos calificados.</p></div>
+            <div class="tip-card"><h3>Tiempo de publicación</h3><p>Publica entre 10:00 y 14:00 para máxima visibilidad en la plataforma.</p></div>
+            <div class="tip-card"><h3>Potencia tu anuncio</h3><p>Activa Boost Premium para aumentar exposición y leads calificados.</p></div>
+          </div>
+        </section>
+
+        <div class="manual-cta">
+          <h2>¿Necesitas más ayuda?</h2>
+          <p>Nuestro equipo de soporte está disponible a través del chatbot IA o contactando con el equipo de 9:00 a 18:00.</p>
+          <div class="manual-actions" style="justify-content:center;">
+            <a class="manual-btn primary" href="{{ url_for('soporte.chat_page') }}"><i class="fas fa-headset"></i> Contactar soporte</a>
+            <a class="manual-btn" href="{{ url_for('buscar') }}"><i class="fas fa-car"></i> Ver catálogo</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+ALTER TABLE vehiculos
+  ADD COLUMN IF NOT EXISTS transmision VARCHAR(50) DEFAULT 'Manual',
+  ADD COLUMN IF NOT EXISTS combustible VARCHAR(50) DEFAULT 'Gasolina',
+  ADD COLUMN IF NOT EXISTS motor VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS traccion VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS puertas INTEGER,
+  ADD COLUMN IF NOT EXISTS plan_destacado BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS comprobante_pago VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS estado_pago VARCHAR(20) DEFAULT 'ninguno',
+  ADD COLUMN IF NOT EXISTS fecha_fin_destacado TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS es_destacado BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS fecha_destacado TIMESTAMP;
+
+ALTER TABLE favoritos
+  ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_vehiculo_plan_destacado ON vehiculos (plan_destacado);
+CREATE INDEX IF NOT EXISTS idx_vehiculo_destacado ON vehiculos (es_destacado);

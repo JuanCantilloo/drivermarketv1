@@ -8,12 +8,13 @@ from dotenv import load_dotenv
 from models import db, FAQ, Vehiculo, Marca, Modelo, ConversacionChatbot
 import sqlalchemy
 from flask import current_app
+from helpers.github_models import call_github_chat, get_github_model
 
 load_dotenv()
 
 # Configuración de GitHub Models
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-GITHUB_MODEL = os.getenv('GITHUB_MODEL', 'gpt-4o')
+GITHUB_MODEL = get_github_model()
 
 # ── Caché de respuestas frecuentes (10 minutos de TTL) ──
 _RESPONSE_CACHE: dict = {}
@@ -302,21 +303,18 @@ FORMATO DE RESPUESTAS:
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # PASO 5: Hacer llamada a GitHub Models
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        url = "https://models.inference.ai.azure.com/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": GITHUB_MODEL or "gpt-4o",
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 600,
-            "top_p": 0.9
-        }
+        payload = {"model": GITHUB_MODEL}
         
         print(f"🤖 DM AI v2 — Llamando {payload['model']}...")
-        response = requests.post(url, headers=headers, json=payload, timeout=25)
+        response, config_error = call_github_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=600,
+            top_p=0.9,
+            timeout=25
+        )
+        if config_error:
+            return "El servicio de asistencia virtual no se encuentra configurado actualmente. Por favor, contacte con el soporte técnico.", "error"
         
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # PASO 6: Procesar respuesta
@@ -326,13 +324,13 @@ FORMATO DE RESPUESTAS:
             print(f"✅ Respuesta IA generada ({len(respuesta)} chars)")
             return respuesta, "ia"
         elif response.status_code == 401:
-            print(f"❌ Error 401: Token de GitHub inválido o expirado")
-            return "Error de autenticación en el servicio de inteligencia artificial. Contacte al administrador del sistema.", "error"
+            print(f"❌ Error 401: Token de GitHub inválido, expirado o sin permiso models:read")
+            return "Error de autenticación en el servicio de inteligencia artificial. El token de GitHub debe estar vigente y tener permiso models:read.", "error"
         elif response.status_code == 429:
             print(f"⚠️  Rate limit excedido")
             return "Se ha excedido el límite de solicitudes. Por favor, intente de nuevo en unos instantes.", "error"
         else:
-            print(f"❌ Error {response.status_code}: {response.text[:200]}")
+            print(f"❌ Error {response.status_code}: {response.text[:500]}")
             return "Se ha presentado una inconsistencia interna al procesar su consulta. ¿Podría repetirla?", "error"
             
     except requests.exceptions.Timeout:
@@ -386,16 +384,15 @@ def generar_analisis_comparativo_ai(vehiculos):
             {"role": "user", "content": f"Compañero, analízame estos vehículos y dime cuál es el negocio de la vida:\n\n{v_info}"}
         ]
 
-        url = "https://models.inference.ai.azure.com/chat/completions"
-        headers = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Content-Type": "application/json"}
-        payload = {
-            "model": GITHUB_MODEL,
-            "messages": messages,
-            "temperature": 0.8,
-            "max_tokens": 800
-        }
-        
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response, config_error = call_github_chat(
+            messages,
+            temperature=0.8,
+            max_tokens=800,
+            top_p=0.9,
+            timeout=30
+        )
+        if config_error:
+            return "El servicio de análisis de mercado no está configurado en este momento.", "error"
         if response.status_code == 200:
             return response.json()["choices"][0]["message"]["content"], "ia"
         return "El servicio de análisis de mercado no está disponible en este momento. Intente de nuevo más tarde.", "error"
@@ -403,5 +400,3 @@ def generar_analisis_comparativo_ai(vehiculos):
     except Exception as e:
         print(f"❌ Error en comparativa AI: {e}")
         return "Se ha presentado un inconveniente técnico al procesar el análisis comparativo.", "error"
-
-

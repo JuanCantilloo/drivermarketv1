@@ -10,6 +10,7 @@ from helpers.asistente_ia import (
     buscar_vehiculos_ia, generar_respuesta_ai,
     get_cached_response, set_cached_response
 )
+from helpers.github_models import call_github_chat, get_github_model
 
 soporte_bp = Blueprint('soporte', __name__)
 
@@ -70,7 +71,7 @@ def chat_api():
             try:
                 conversaciones_prev = ConversacionChatbot.query.filter_by(
                     session_id=session_id
-                ).order_by(ConversacionChatbot.fecha_creacion.desc()).limit(4).all()
+                ).order_by(ConversacionChatbot.fecha.desc()).limit(4).all()
                 if conversaciones_prev:
                     history = []
                     for c in reversed(conversaciones_prev):
@@ -191,14 +192,14 @@ def obtener_historial():
         conversaciones = ConversacionChatbot.query.filter_by(
             usuario_id=session.get('usuario_id'),
             session_id=session_id
-        ).order_by(ConversacionChatbot.fecha_creacion.desc()).limit(50).all()
+        ).order_by(ConversacionChatbot.fecha.desc()).limit(50).all()
         
         return jsonify([{
             'id': c.id,
             'pregunta': c.pregunta,
             'respuesta': c.respuesta,
             'tipo': c.tipo_respuesta,
-            'timestamp': c.fecha_creacion.isoformat()
+            'timestamp': c.fecha.isoformat() if c.fecha else None
         } for c in conversaciones])
     except Exception as e:
         print(f"Error en obtener_historial: {e}")
@@ -213,13 +214,42 @@ def obtener_estado():
         load_dotenv()
         
         github_token = os.getenv('GITHUB_TOKEN')
-        github_model = os.getenv('GITHUB_MODEL', 'gpt-4o')
+        github_model = get_github_model()
+        if not github_token:
+            return jsonify({
+                'status': 'unconfigured',
+                'modelo': github_model,
+                'servicio': 'GitHub Models',
+                'configurado': False,
+                'detalle': 'Falta GITHUB_TOKEN'
+            })
+
+        response, config_error = call_github_chat(
+            [{"role": "user", "content": "ping"}],
+            temperature=0,
+            max_tokens=8,
+            top_p=1,
+            timeout=10
+        )
+        if config_error:
+            status = 'unconfigured'
+            detalle = 'Falta GITHUB_TOKEN'
+        elif response.status_code == 200:
+            status = 'operational'
+            detalle = 'OK'
+        elif response.status_code == 401:
+            status = 'auth_error'
+            detalle = 'Token invalido, expirado o sin permiso models:read'
+        else:
+            status = 'error'
+            detalle = f'HTTP {response.status_code}: {response.text[:200]}'
         
         return jsonify({
-            'status': 'operational' if github_token else 'unconfigured',
+            'status': status,
             'modelo': github_model,
             'servicio': 'GitHub Models',
-            'configurado': bool(github_token)
+            'configurado': bool(github_token),
+            'detalle': detalle
         })
     except Exception as e:
         print(f"Error en obtener_estado: {e}")
@@ -253,7 +283,7 @@ def ia_stats_api():
         top_preguntas = db.session.execute(sqlalchemy.text("""
             SELECT pregunta, COUNT(*) as veces
             FROM conversaciones_chatbot
-            WHERE fecha_creacion >= NOW() - INTERVAL '30 days'
+            WHERE fecha >= NOW() - INTERVAL '30 days'
             GROUP BY pregunta
             ORDER BY veces DESC
             LIMIT 10
@@ -261,17 +291,17 @@ def ia_stats_api():
 
         # ── Uso por hora del día (últimos 30 días)
         por_hora = db.session.execute(sqlalchemy.text("""
-            SELECT EXTRACT(HOUR FROM fecha_creacion)::int AS hora, COUNT(*) AS total
+            SELECT EXTRACT(HOUR FROM fecha)::int AS hora, COUNT(*) AS total
             FROM conversaciones_chatbot
-            WHERE fecha_creacion >= NOW() - INTERVAL '30 days'
+            WHERE fecha >= NOW() - INTERVAL '30 days'
             GROUP BY hora ORDER BY hora
         """)).fetchall()
 
         # ── Conversaciones por día (últimos 14 días)
         por_dia = db.session.execute(sqlalchemy.text("""
-            SELECT DATE(fecha_creacion) AS dia, COUNT(*) AS total
+            SELECT DATE(fecha) AS dia, COUNT(*) AS total
             FROM conversaciones_chatbot
-            WHERE fecha_creacion >= NOW() - INTERVAL '14 days'
+            WHERE fecha >= NOW() - INTERVAL '14 days'
             GROUP BY dia ORDER BY dia
         """)).fetchall()
 
@@ -326,4 +356,3 @@ def chat_docs_api():
         'tipo': tipo
     })
     
-

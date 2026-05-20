@@ -4,25 +4,29 @@ import psycopg2.extras
 from datetime import datetime
 from functools import wraps
 import contextlib
-import os
 from dotenv import load_dotenv
+from db_settings import get_psycopg2_params
 
 notificaciones_bp = Blueprint('notificaciones', __name__)
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
 # =================================================================
 # CONFIGURACIÓN DE POOL DE CONEXIONES
 # =================================================================
 
-connection_pool = pool.SimpleConnectionPool(
-    1,
-    5,
-    host=os.getenv("DB_HOST", "localhost"),
-    user=os.getenv("DB_USER", "postgres"),
-    password=os.getenv("DB_PASSWORD", "samueladso"),
-    dbname=os.getenv("DB_NAME", "todoen1unos"),
-    port=int(os.getenv("DB_PORT", "5432"))
-)
+connection_pool = None
+
+def get_connection_pool():
+    global connection_pool
+    if connection_pool is None:
+        try:
+            connection_pool = pool.SimpleConnectionPool(1, 5, **get_psycopg2_params())
+        except UnicodeDecodeError as exc:
+            raise psycopg2.OperationalError(
+                "No se pudo conectar a PostgreSQL. Revisa DB_HOST, DB_USER, "
+                "DB_PASSWORD, DB_NAME y que el servicio este activo."
+            ) from exc
+    return connection_pool
 
 def login_required(f):
     @wraps(f)
@@ -36,18 +40,23 @@ def login_required(f):
 
 @contextlib.contextmanager
 def get_db_cursor(dictionary=True):
-    connection = connection_pool.getconn()
-    connection.autocommit = False
-    cursor = connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor if dictionary else None)
+    connection = None
+    cursor = None
     try:
+        connection = get_connection_pool().getconn()
+        connection.autocommit = False
+        cursor = connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor if dictionary else None)
         yield cursor
         connection.commit()
     except Exception as e:
-        connection.rollback()
+        if connection:
+            connection.rollback()
         raise e
     finally:
-        cursor.close()
-        connection_pool.putconn(connection)
+        if cursor:
+            cursor.close()
+        if connection:
+            get_connection_pool().putconn(connection)
 
 def format_tiempo_transcurrido(fecha):
     ahora = datetime.now()
@@ -258,4 +267,3 @@ def marcar_no_leida(notificacion_id):
             cursor.execute("UPDATE notificaciones SET leida = FALSE, fecha_leida = NULL WHERE id = %s AND id_usuario = %s", (notificacion_id, u_id))
             return jsonify({'success': cursor.rowcount > 0})
     except Exception as e: return jsonify({'success': False}), 500
-

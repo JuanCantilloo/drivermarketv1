@@ -2,10 +2,10 @@
 
 import psycopg2
 import psycopg2.extras
-import os
 from dotenv import load_dotenv
+from db_settings import get_psycopg2_params
 
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
 # ---------------------------------------------------------------
 # ⚙️ GESTIÓN CENTRALIZADA DE BASE DE DATOS (PostgreSQL)
@@ -19,21 +19,16 @@ def get_db():
     try:
         # Si la conexión no existe o está cerrada, intentar reconectar
         if _conexion_real is None or (hasattr(_conexion_real, 'closed') and _conexion_real.closed):
-            host = os.getenv("DB_HOST", "localhost")
-            user = os.getenv("DB_USER", "postgres")
-            password = os.getenv("DB_PASSWORD", "samueladso")
-            dbname = os.getenv("DB_NAME", "todoen1unos")
-            port = int(os.getenv("DB_PORT", "5432"))
-            _conexion_real = psycopg2.connect(
-                host=host,
-                user=user,
-                password=password,
-                dbname=dbname,
-                port=port
-            )
+            _conexion_real = psycopg2.connect(**get_psycopg2_params())
             _conexion_real.autocommit = False
+    except UnicodeDecodeError:
+        print(
+            "[db_config] Error conectando a PostgreSQL. Revisa DB_HOST, "
+            "DB_USER, DB_PASSWORD, DB_NAME y que el servicio este activo."
+        )
+        _conexion_real = None
     except (psycopg2.InterfaceError, psycopg2.OperationalError, Exception) as e:
-        print("❌ [db_config] Error reconectando a PostgreSQL:", e)
+        print("[db_config] Error reconectando a PostgreSQL:", e)
         _conexion_real = None
         
     return _conexion_real
@@ -51,4 +46,3 @@ conexion = DBProxy()
 
 # Inicialización primaria
 get_db()
-

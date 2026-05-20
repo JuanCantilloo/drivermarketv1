@@ -5,16 +5,20 @@ Módulo de funciones auxiliares para notificaciones (CORREGIDO)
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
+from dotenv import load_dotenv
+from db_settings import get_psycopg2_params
+
+load_dotenv(encoding="utf-8")
 
 def get_db_connection():
     """Obtiene conexión a PostgreSQL"""
-    conn = psycopg2.connect(
-        host="localhost",
-        user="postgres",
-        password="samueladso",
-        dbname="todoen1unos",
-        port=5432
-    )
+    try:
+        conn = psycopg2.connect(**get_psycopg2_params())
+    except UnicodeDecodeError as exc:
+        raise psycopg2.OperationalError(
+            "No se pudo conectar a PostgreSQL. Revisa DB_HOST, DB_USER, "
+            "DB_PASSWORD, DB_NAME y que el servicio este activo."
+        ) from exc
     conn.autocommit = False
     return conn
 

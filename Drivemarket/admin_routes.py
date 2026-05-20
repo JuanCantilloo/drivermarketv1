@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import current_app
 import uuid
 from werkzeug.utils import secure_filename
+from helpers.storage_paths import get_upload_dir
 import psycopg2
 import psycopg2.extras
 import os
@@ -1363,7 +1364,7 @@ def crear_vehiculo():
             ruta_imagen_principal = None
 
             if archivos and archivos[0].filename:
-                upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'vehiculos')
+                upload_folder = get_upload_dir('uploads', 'vehiculos') or os.path.join(current_app.root_path, 'static', 'uploads', 'vehiculos')
                 if not os.path.exists(upload_folder):
                     os.makedirs(upload_folder)
 
@@ -2770,4 +2771,3 @@ def rechazar_pago(id):
         flash("Error al rechazar el pago.", "error")
         
     return redirect(url_for('admin.admin_pagos'))
-
